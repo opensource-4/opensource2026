@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>전세안심분석 - AI 기반 전세 보증금 위험도 분석</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="container nav-content">
+            <a href="index.html" class="logo">
+                <div class="logo-icon">
+                    <i data-lucide="bar-chart-3"></i>
+                </div>
+                <div>
+                    <h1 class="logo-title">전세안심분석</h1>
+                    <p class="logo-subtitle">AI 보증금 위험도 분석</p>
+                </div>
+            </a>
+            <div class="nav-links">
+                <a href="index.html" class="nav-link active">
+                    <i data-lucide="home"></i>
+                    <span>홈</span>
+                </a>
+                <a href="analyze.html" class="nav-link">
+                    <i data-lucide="file-text"></i>
+                    <span>분석하기</span>
+                </a>
+                <a href="data.html" class="nav-link">
+                    <i data-lucide="map"></i>
+                    <span>지역 데이터</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <div class="badge">
+                    <i data-lucide="brain" class="badge-icon-svg"></i>
+                    <span class="badge-text">AI 기반 리스크 분석</span>
+                </div>
+                <h1 class="hero-title">전세 보증금,<br>안전하게 지키세요</h1>
+                <p class="hero-description">
+                    실거래가와 근저당 정보를 AI로 분석하여<br>
+                    경매 시 보증금 회수 가능성을 미리 확인하세요
+                </p>
+                <div class="hero-buttons">
+                    <a href="analyze.html" class="btn btn-primary">
+                        <i data-lucide="shield"></i>
+                        무료로 위험도 분석하기
+                        <i data-lucide="arrow-right"></i>
+                    </a>
+                    <a href="#how-it-works" class="btn btn-secondary">
+                        서비스 소개 보기
+                    </a>
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value">98.5%</div>
+                    <div class="stat-label">분석 정확도</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">15,000+</div>
+                    <div class="stat-label">누적 분석 건수</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">24시간</div>
+                    <div class="stat-label">실시간 데이터 업데이트</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Problem Section -->
+    <section class="section bg-white">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">이런 고민 있으신가요?</h2>
+                <p class="section-description">전세 계약 전, 보증금 안전성을 확인하기 어려우셨죠?</p>
+            </div>
+            <div class="problem-grid">
+                <div class="problem-card">
+                    <i data-lucide="alert-triangle" class="problem-icon"></i>
+                    <h3 class="problem-title">근저당이 너무 많아요</h3>
+                    <p class="problem-text">집주인 대출이 많으면 경매 시 보증금을 못 받을 수 있습니다</p>
+                </div>
+                <div class="problem-card">
+                    <i data-lucide="trending-down" class="problem-icon"></i>
+                    <h3 class="problem-title">집값이 떨어지고 있어요</h3>
+                    <p class="problem-text">시세 하락 시 경매가도 낮아져 보증금 회수가 어려워집니다</p>
+                </div>
+                <div class="problem-card">
+                    <i data-lucide="help-circle" class="problem-icon"></i>
+                    <h3 class="problem-title">복잡해서 모르겠어요</h3>
+                    <p class="problem-text">등기부등본을 봐도 위험한지 안전한지 판단이 어렵습니다</p>
+                </div>
+                <div class="problem-card">
+                    <i data-lucide="credit-card" class="problem-icon"></i>
+                    <h3 class="problem-title">전문가 상담은 비싸요</h3>
+                    <p class="problem-text">변호사나 법무사 상담 비용 부담이 큽니다</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section id="how-it-works" class="section bg-gray">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">AI가 3단계로 분석합니다</h2>
+                <p class="section-description">복잡한 권리분석을 쉽고 빠르게</p>
+            </div>
+            <div class="steps-grid">
+                <div class="step-card">
+                    <div class="step-number">1</div>
+                    <div class="step-icon-wrapper blue">
+                        <i data-lucide="database" class="step-icon-svg"></i>
+                    </div>
+                    <h3 class="step-title">실거래가 분석</h3>
+                    <p class="step-text">최근 3년간 실거래 데이터를 분석하여 예상 경매가를 산정합니다</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">2</div>
+                    <div class="step-icon-wrapper indigo">
+                        <i data-lucide="trending-up" class="step-icon-svg"></i>
+                    </div>
+                    <h3 class="step-title">권리관계 검토</h3>
+                    <p class="step-text">근저당, 선순위 세입자 등 모든 권리관계를 종합 분석합니다</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">3</div>
+                    <div class="step-icon-wrapper purple">
+                        <i data-lucide="brain" class="step-icon-svg"></i>
+                    </div>
+                    <h3 class="step-title">AI 위험도 예측</h3>
+                    <p class="step-text">머신러닝으로 보증금 회수 가능 금액과 위험도를 계산합니다</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features -->
+    <section class="section bg-white">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">왜 전세안심분석일까요?</h2>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <i data-lucide="check-circle" class="feature-icon"></i>
+                    <h3 class="feature-title">실시간 데이터</h3>
+                    <p class="feature-text">국토교통부 실거래가 공시 데이터를 실시간으로 반영합니다</p>
+                </div>
+                <div class="feature-card">
+                    <i data-lucide="check-circle" class="feature-icon"></i>
+                    <h3 class="feature-title">직관적 리포트</h3>
+                    <p class="feature-text">복잡한 법률 용어 없이 누구나 이해하기 쉬운 분석 결과 제공</p>
+                </div>
+                <div class="feature-card">
+                    <i data-lucide="check-circle" class="feature-icon"></i>
+                    <h3 class="feature-title">무료 서비스</h3>
+                    <p class="feature-text">기본 위험도 분석은 누구나 무료로 이용할 수 있습니다</p>
+                </div>
+                <div class="feature-card">
+                    <i data-lucide="check-circle" class="feature-icon"></i>
+                    <h3 class="feature-title">빠른 분석</h3>
+                    <p class="feature-text">정보 입력 후 30초 이내 AI 분석 결과를 확인할 수 있습니다</p>
+                </div>
+                <div class="feature-card">
+                    <i data-lucide="check-circle" class="feature-icon"></i>
+                    <h3 class="feature-title">지역별 통계</h3>
+                    <p class="feature-text">우리 동네 전세 거래 동향과 평균 위험도를 한눈에 파악</p>
+                </div>
+                <div class="feature-card">
+                    <i data-lucide="check-circle" class="feature-icon"></i>
+                    <h3 class="feature-title">모바일 최적화</h3>
+                    <p class="feature-text">언제 어디서나 스마트폰으로 편리하게 이용 가능</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section">
+        <div class="container">
+            <div class="cta-content">
+                <h2 class="cta-title">지금 바로 무료로 분석해보세요</h2>
+                <p class="cta-description">3분이면 충분합니다. 회원가입도 필요 없습니다.</p>
+                <a href="analyze.html" class="btn btn-white">
+                    <i data-lucide="shield"></i>
+                    위험도 분석 시작하기
+                    <i data-lucide="arrow-right"></i>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-col">
+                    <div class="footer-logo">
+                        <div class="logo-icon">
+                            <i data-lucide="bar-chart-3"></i>
+                        </div>
+                        <span class="footer-brand">전세안심분석</span>
+                    </div>
+                    <p class="footer-text">AI 기반 전세 보증금 위험도 분석 플랫폼</p>
+                </div>
+                <div class="footer-col">
+                    <h3 class="footer-title">서비스</h3>
+                    <ul class="footer-links">
+                        <li><a href="analyze.html">위험도 분석</a></li>
+                        <li><a href="data.html">지역 데이터</a></li>
+                        <li><a href="#">이용 가이드</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h3 class="footer-title">고객 지원</h3>
+                    <ul class="footer-links">
+                        <li><a href="#">자주 묻는 질문</a></li>
+                        <li><a href="#">문의하기</a></li>
+                        <li><a href="#">개인정보처리방침</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                © 2026 전세안심분석. All rights reserved.
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>
