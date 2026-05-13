@@ -32,7 +32,9 @@ public class AnalysisController {
         long expectedAuctionPrice = 650000000;
         long auctionCost = 13000000;
 
-        long recoverableAmount = expectedAuctionPrice - mortgage - priorTenants - auctionCost;
+        long rawRecoverableAmount = expectedAuctionPrice - mortgage - priorTenants - auctionCost;
+
+        long recoverableAmount = Math.min(rawRecoverableAmount, deposit);
 
         int recoveryRate = (int) (recoverableAmount * 100 / deposit);
 
