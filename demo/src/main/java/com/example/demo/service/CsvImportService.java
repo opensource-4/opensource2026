@@ -22,7 +22,7 @@ public class CsvImportService {
             BufferedReader reader = new BufferedReader(
                 new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8)
             );
-            reader.readLine(); // 헤더 스킵
+            reader.readLine();
             String line;
             while ((line = reader.readLine()) != null) {
                 String[] s = line.split(",");
