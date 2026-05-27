@@ -22,7 +22,7 @@ RANDOM_STATE = 42
 TEST_SIZE = 0.2
 MIN_CATEGORY_COUNT = 50
 SMOOTHING = 20
-TARGET_MODE = "historical_baseline_change_rate"
+TARGET_MODE = "direct_price_with_historical_baseline_features"
 
 COL_SIGUNGU = "시군구"
 COL_AREA = "연면적(㎡)"
@@ -175,9 +175,6 @@ def add_historical_baseline_features(df):
     out["baseline_unit_price"] = out["baseline_unit_price"].fillna(fallback_unit)
     out["baseline_count"] = out["baseline_count"].fillna(0).astype(float)
     out["baseline_price"] = out["baseline_unit_price"] * out["total_area"]
-    out["price_change_rate"] = (
-        (out["price"] - out["baseline_price"]) / out["baseline_price"]
-    ).clip(-0.75, 3.0)
 
     return out.drop(
         columns=[
@@ -370,7 +367,7 @@ def evaluate(y_true, pred):
 def get_param_sets(mode):
     if mode == "quick":
         return {
-            "raw": {"n_estimators": 250, "max_depth": 4, "learning_rate": 0.04, "subsample": 0.9, "colsample_bytree": 0.9, "reg_lambda": 2.0},
+            "raw": {"n_estimators": 250, "max_depth": 5, "learning_rate": 0.04, "subsample": 0.9, "colsample_bytree": 0.9, "reg_lambda": 2.0},
             "log": {"n_estimators": 250, "max_depth": 4, "learning_rate": 0.04, "subsample": 0.85, "colsample_bytree": 0.85, "reg_lambda": 2.0},
             "unit": {"n_estimators": 220, "max_depth": 4, "learning_rate": 0.045, "subsample": 0.85, "colsample_bytree": 0.85, "reg_lambda": 2.0},
         }
@@ -387,7 +384,9 @@ def train_ensemble(data, mode, device):
     x_train = train_df[BASE_FEATURES]
     x_test = test_df[BASE_FEATURES]
 
-    y_train_change = train_df["price_change_rate"]
+    y_train_raw = train_df["price"]
+    y_train_log = np.log1p(train_df["price"])
+    y_train_unit = train_df["price_per_total_area"]
     y_test = test_df["price"]
 
     weight_base_year = train_df["trade_year"].min()
@@ -420,31 +419,31 @@ def train_ensemble(data, mode, device):
 
         raw_pipeline.fit(
             x_cv_train,
-            y_train_change.iloc[train_idx],
+            y_train_raw.iloc[train_idx],
             target_encoder__sample_weight=w_cv_train,
             model__sample_weight=w_cv_train,
         )
         log_pipeline.fit(
             x_cv_train,
-            y_train_change.iloc[train_idx],
+            y_train_log.iloc[train_idx],
             target_encoder__sample_weight=w_cv_train,
             model__sample_weight=w_cv_train,
         )
         unit_pipeline.fit(
             x_cv_train,
-            y_train_change.iloc[train_idx],
+            y_train_unit.iloc[train_idx],
             target_encoder__sample_weight=w_cv_train,
             model__sample_weight=w_cv_train,
         )
 
-        raw_change = raw_pipeline.predict(x_cv_valid)
-        log_change = log_pipeline.predict(x_cv_valid)
-        unit_change = unit_pipeline.predict(x_cv_valid)
+        raw_pred = np.maximum(raw_pipeline.predict(x_cv_valid), 0)
+        log_pred = np.maximum(np.expm1(log_pipeline.predict(x_cv_valid)), 0)
+        unit_pred = unit_pipeline.predict(x_cv_valid)
+        unit_price_pred = np.maximum(unit_pred * x_cv_valid["total_area"].values, 0)
 
         for weights in weight_candidates:
             a, b, c = weights
-            change_pred = np.clip(a * raw_change + b * log_change + c * unit_change, -0.9, 4.0)
-            price_pred = np.maximum(x_cv_valid["baseline_price"].values * (1 + change_pred), 0)
+            price_pred = np.maximum(a * raw_pred + b * log_pred + c * unit_price_pred, 0)
             actual_price = train_df["price"].iloc[valid_idx]
             weight_scores[weights].append(mean_absolute_error(actual_price, price_pred))
 
@@ -458,19 +457,19 @@ def train_ensemble(data, mode, device):
 
     final_raw_pipeline.fit(
         x_train,
-        y_train_change,
+        y_train_raw,
         target_encoder__sample_weight=sample_weight,
         model__sample_weight=sample_weight,
     )
     final_log_pipeline.fit(
         x_train,
-        y_train_change,
+        y_train_log,
         target_encoder__sample_weight=sample_weight,
         model__sample_weight=sample_weight,
     )
     final_unit_pipeline.fit(
         x_train,
-        y_train_change,
+        y_train_unit,
         target_encoder__sample_weight=sample_weight,
         model__sample_weight=sample_weight,
     )
@@ -478,11 +477,11 @@ def train_ensemble(data, mode, device):
     a, b, c = best_weights
 
     def predict_price(x):
-        raw_change = final_raw_pipeline.predict(x)
-        log_change = final_log_pipeline.predict(x)
-        unit_change = final_unit_pipeline.predict(x)
-        change_pred = np.clip(a * raw_change + b * log_change + c * unit_change, -0.9, 4.0)
-        return np.maximum(x["baseline_price"].values * (1 + change_pred), 0)
+        raw_pred = np.maximum(final_raw_pipeline.predict(x), 0)
+        log_pred = np.maximum(np.expm1(final_log_pipeline.predict(x)), 0)
+        unit_pred = final_unit_pipeline.predict(x)
+        unit_price_pred = np.maximum(unit_pred * x["total_area"].values, 0)
+        return np.maximum(a * raw_pred + b * log_pred + c * unit_price_pred, 0)
 
     train_pred = predict_price(x_train)
     test_pred = predict_price(x_test)
@@ -514,7 +513,7 @@ def train_ensemble(data, mode, device):
         "train_rows": int(len(train_df)),
         "test_rows": int(len(test_df)),
         "test_period": [int(test_df["contract_ym"].min()), int(test_df["contract_ym"].max())],
-        "model_type": "historical_baseline_change_rate_xgb_ensemble",
+        "model_type": "direct_price_xgb_with_historical_baseline_features",
         "target_mode": TARGET_MODE,
         "params": params,
         "weight_result": {str(k): float(np.mean(v)) for k, v in weight_scores.items()},
@@ -565,8 +564,8 @@ def write_summary(path, result):
 
 ## Changes In This Script
 
-- Predicts change rate from historical local baseline price.
-- Restores price as `baseline_price * (1 + predicted_change_rate)`.
+- Predicts direct absolute price.
+- Uses historical local baseline price as helper features.
 - Historical baseline uses only prior transactions to reduce target leakage.
 - Baseline hierarchy: `dong+house_type` -> `gu+house_type` -> `house_type` -> global prior mean.
 """
