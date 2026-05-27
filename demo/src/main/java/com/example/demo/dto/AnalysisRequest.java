@@ -5,6 +5,7 @@ public class AnalysisRequest {
     private String address;
     private String buildingType;
     private String area;
+    private String landArea;
     private String deposit;
     private String mortgage;
     private String priorTenants;
@@ -20,6 +21,10 @@ public class AnalysisRequest {
 
     public String getArea() {
         return area;
+    }
+
+    public String getLandArea() {
+        return landArea;
     }
 
     public String getDeposit() {
@@ -48,6 +53,10 @@ public class AnalysisRequest {
 
     public void setArea(String area) {
         this.area = area;
+    }
+
+    public void setLandArea(String landArea) {
+        this.landArea = landArea;
     }
 
     public void setDeposit(String deposit) {
