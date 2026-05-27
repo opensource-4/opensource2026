@@ -1,6 +1,7 @@
 package com.example.demo.service;
 
 import com.example.demo.dto.RegionSummary;
+import com.example.demo.dto.PriceTrendPoint;
 import com.example.demo.dto.TradeData;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -9,7 +10,11 @@ import org.springframework.stereotype.Service;
 
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class TradeDataService {
@@ -42,6 +47,33 @@ public class TradeDataService {
         result.add(makeSummary("처인구", trades));
 
         return result;
+    }
+
+    public List<PriceTrendPoint> getYearlyTrend() {
+        List<TradeData> trades = getAllTrades();
+
+        Map<Integer, List<TradeData>> groupedByYear = trades.stream()
+                .collect(Collectors.groupingBy(
+                        TradeData::getDealYear,
+                        LinkedHashMap::new,
+                        Collectors.toList()
+                ));
+
+        return groupedByYear.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .map(entry -> {
+                    List<TradeData> yearlyTrades = entry.getValue();
+                    long totalPrice = yearlyTrades.stream().mapToLong(TradeData::getPrice).sum();
+                    long count = yearlyTrades.size();
+                    long averagePrice = count > 0 ? totalPrice / count : 0L;
+
+                    return new PriceTrendPoint(
+                            String.valueOf(entry.getKey()),
+                            averagePrice,
+                            count
+                    );
+                })
+                .collect(Collectors.toList());
     }
 
     private RegionSummary makeSummary(String gu, List<TradeData> trades) {

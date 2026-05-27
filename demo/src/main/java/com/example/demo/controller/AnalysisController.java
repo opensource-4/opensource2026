@@ -47,6 +47,9 @@ public class AnalysisController {
         long recoverableAmount = calculateRecoverableAmount(deposit, remainingAfterAuction);
         int recoveryRate = deposit > 0 ? (int) (recoverableAmount * 100L / deposit) : 0;
         String riskLevel = classifyRisk(recoveryRate);
+        boolean smallTenantApplied = deposit > 0 && deposit <= SMALL_DEPOSIT_LIMIT;
+        boolean priorityRepaymentApplied = deposit > 0 && deposit <= PRIORITY_REPAYMENT;
+        String recoveryRuleMessage = buildRecoveryRuleMessage(smallTenantApplied, priorityRepaymentApplied);
 
         return new AnalysisResult(
                 riskLevel,
@@ -56,7 +59,10 @@ public class AnalysisController {
                 expectedAuctionPrice,
                 mortgage,
                 priorTenants,
-                AUCTION_COST
+                AUCTION_COST,
+                smallTenantApplied,
+                priorityRepaymentApplied,
+                recoveryRuleMessage
         );
     }
 
@@ -116,6 +122,18 @@ public class AnalysisController {
         }
 
         return "위험";
+    }
+
+    private String buildRecoveryRuleMessage(boolean smallTenantApplied, boolean priorityRepaymentApplied) {
+        if (priorityRepaymentApplied) {
+            return "소액임차인 최우선변제 대상입니다. 우선변제 한도 범위에서 회수 금액을 계산합니다.";
+        }
+
+        if (smallTenantApplied) {
+            return "소액임차인 적용 구간입니다. 우선변제 대상 여부와 경매 잔여금을 함께 반영해 회수 금액을 계산합니다.";
+        }
+
+        return "일반 임차인 기준으로 경매 잔여금과 선순위 채권을 반영해 회수 금액을 계산합니다.";
     }
 
     private long parseMoney(String value) {
