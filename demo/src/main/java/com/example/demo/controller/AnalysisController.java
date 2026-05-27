@@ -1,100 +1,52 @@
-```java
 package com.example.demo.controller;
 
 import com.example.demo.dto.AnalysisRequest;
 import com.example.demo.dto.AnalysisResult;
-import org.springframework.web.bind.annotation.*;
+import com.example.demo.dto.PricePredictionRequest;
+import com.example.demo.dto.PricePredictionResponse;
+import com.example.demo.service.PricePredictionClient;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/api")
 @CrossOrigin(origins = "http://localhost:5173")
 public class AnalysisController {
 
+    private static final long FALLBACK_EXPECTED_AUCTION_PRICE = 650_000_000L;
+    private static final long AUCTION_COST = 13_000_000L;
+    private static final long SMALL_DEPOSIT_LIMIT = 140_000_000L;
+    private static final long PRIORITY_REPAYMENT = 48_000_000L;
+    private static final double LIQUIDATION_RATE = 0.85;
+
+    private final PricePredictionClient pricePredictionClient;
+
+    public AnalysisController(PricePredictionClient pricePredictionClient) {
+        this.pricePredictionClient = pricePredictionClient;
+    }
+
     @PostMapping("/analyze")
     public AnalysisResult analyze(@RequestBody AnalysisRequest request) {
+        long deposit = parseMoney(request.getDeposit());
+        long mortgage = parseMoney(request.getMortgage());
+        long priorTenants = parseMoney(request.getPriorTenants());
 
-        System.out.println("주소: " + request.getAddress());
-        System.out.println("건물유형: " + request.getBuildingType());
-        System.out.println("전용면적: " + request.getArea());
-        System.out.println("보증금: " + request.getDeposit());
-        System.out.println("근저당: " + request.getMortgage());
-        System.out.println("선순위 세입자: " + request.getPriorTenants());
-        System.out.println("건축년도: " + request.getBuildingAge());
+        long expectedAuctionPrice = predictExpectedAuctionPrice(request);
 
-        long deposit = Long.parseLong(request.getDeposit().replace(",", ""));
-        long mortgage = Long.parseLong(request.getMortgage().replace(",", ""));
-
-        long priorTenants = 0;
-        if (request.getPriorTenants() != null && !request.getPriorTenants().isEmpty()) {
-            priorTenants = Long.parseLong(request.getPriorTenants().replace(",", ""));
-        }
-
-        // 현재는 AI 모델 연동 전 단계이므로 임시 고정값 사용
-        long expectedAuctionPrice = 650_000_000L;
-
-        // 경매 비용
-        long auctionCost = 13_000_000L;
-
-        // 최우선변제 기준
-        long smallDepositLimit = 140_000_000L; // 1억 4000만
-        long priorityRepayment = 48_000_000L;  // 4800만
-
-        // 경매 후 남은 금액
         long remainingAfterAuction =
                 expectedAuctionPrice
                         - mortgage
                         - priorTenants
-                        - auctionCost;
+                        - AUCTION_COST;
 
-        long recoverableAmount;
-
-        if (deposit >= smallDepositLimit) {
-
-            // 보증금 1억 4000만 이상
-            recoverableAmount = remainingAfterAuction;
-
-        } else {
-
-            // 보증금 1억 4000만 미만 → 최우선변제 적용
-
-            if (deposit <= priorityRepayment) {
-
-                // 보증금이 4800만 이하이면 전액 보호
-                recoverableAmount = deposit;
-
-            } else {
-
-                // 4800만 초과분
-                long excessDeposit = deposit - priorityRepayment;
-
-                // 초과 보증금 중 실제 회수 가능한 금액
-                long excessRecoverable =
-                        Math.min(remainingAfterAuction, excessDeposit);
-
-                // 최우선변제금 + 추가 회수 가능 금액
-                recoverableAmount =
-                        priorityRepayment + excessRecoverable;
-            }
-        }
-
-        // 회수 가능 금액 보정
-        recoverableAmount = Math.min(recoverableAmount, deposit);
-        recoverableAmount = Math.max(recoverableAmount, 0);
-
-        // 회수율 계산
-        int recoveryRate =
-                (int) (recoverableAmount * 100L / deposit);
-
-        // 위험도 분류
-        String riskLevel;
-
-        if (recoveryRate >= 90) {
-            riskLevel = "안전";
-        } else if (recoveryRate >= 60) {
-            riskLevel = "주의";
-        } else {
-            riskLevel = "위험";
-        }
+        long recoverableAmount = calculateRecoverableAmount(deposit, remainingAfterAuction);
+        int recoveryRate = deposit > 0 ? (int) (recoverableAmount * 100L / deposit) : 0;
+        String riskLevel = classifyRisk(recoveryRate);
 
         return new AnalysisResult(
                 riskLevel,
@@ -104,8 +56,89 @@ public class AnalysisController {
                 expectedAuctionPrice,
                 mortgage,
                 priorTenants,
-                auctionCost
+                AUCTION_COST
         );
     }
+
+    private long predictExpectedAuctionPrice(AnalysisRequest request) {
+        try {
+            PricePredictionRequest predictionRequest = new PricePredictionRequest(
+                    request.getAddress(),
+                    request.getBuildingType(),
+                    parseDouble(request.getArea(), 1.0),
+                    parseDouble(request.getLandArea(), parseDouble(request.getArea(), 1.0)),
+                    parseInt(request.getBuildingAge(), LocalDate.now().getYear()),
+                    LocalDate.now().getYear(),
+                    LocalDate.now().getMonthValue(),
+                    LocalDate.now().getDayOfMonth(),
+                    "기타",
+                    LIQUIDATION_RATE
+            );
+
+            PricePredictionResponse response = pricePredictionClient.predict(predictionRequest);
+
+            if (response != null && response.getExpectedAuctionPriceKrw() > 0) {
+                return response.getExpectedAuctionPriceKrw();
+            }
+        } catch (Exception e) {
+            System.out.println("AI price prediction failed. Using fallback auction price.");
+        }
+
+        return FALLBACK_EXPECTED_AUCTION_PRICE;
+    }
+
+    private long calculateRecoverableAmount(long deposit, long remainingAfterAuction) {
+        long recoverableAmount;
+
+        if (deposit >= SMALL_DEPOSIT_LIMIT) {
+            recoverableAmount = remainingAfterAuction;
+        } else if (deposit <= PRIORITY_REPAYMENT) {
+            recoverableAmount = deposit;
+        } else {
+            long excessDeposit = deposit - PRIORITY_REPAYMENT;
+            long excessRecoverable = Math.min(remainingAfterAuction, excessDeposit);
+            recoverableAmount = PRIORITY_REPAYMENT + excessRecoverable;
+        }
+
+        recoverableAmount = Math.min(recoverableAmount, deposit);
+        recoverableAmount = Math.max(recoverableAmount, 0);
+
+        return recoverableAmount;
+    }
+
+    private String classifyRisk(int recoveryRate) {
+        if (recoveryRate >= 90) {
+            return "안전";
+        }
+
+        if (recoveryRate >= 60) {
+            return "주의";
+        }
+
+        return "위험";
+    }
+
+    private long parseMoney(String value) {
+        if (value == null || value.isBlank()) {
+            return 0L;
+        }
+
+        return Long.parseLong(value.replace(",", "").trim());
+    }
+
+    private double parseDouble(String value, double defaultValue) {
+        if (value == null || value.isBlank()) {
+            return defaultValue;
+        }
+
+        return Double.parseDouble(value.replace(",", "").trim());
+    }
+
+    private int parseInt(String value, int defaultValue) {
+        if (value == null || value.isBlank()) {
+            return defaultValue;
+        }
+
+        return Integer.parseInt(value.replace(",", "").trim());
+    }
 }
-```
