@@ -1,16 +1,12 @@
 package com.example.demo.service;
 
-import com.example.demo.dto.RegionSummary;
 import com.example.demo.dto.PriceTrendPoint;
+import com.example.demo.dto.RegionSummary;
 import com.example.demo.dto.TradeData;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.core.io.ClassPathResource;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
-import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,23 +15,61 @@ import java.util.stream.Collectors;
 @Service
 public class TradeDataService {
 
+    private final JdbcTemplate jdbcTemplate;
+
+    public TradeDataService(JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
+
     public List<TradeData> getAllTrades() {
-        try {
-            ObjectMapper objectMapper = new ObjectMapper();
+        String sql = """
+                SELECT '처인구' AS gu,
+                       `시군구`,
+                       `주택유형`,
+                       `계약년월`,
+                       `보증금(만원)`,
+                       `계약면적(㎡)`
+                FROM cheoin_data
 
-            ClassPathResource resource =
-                    new ClassPathResource("data/yongin_trade_sample.json");
+                UNION ALL
 
-            InputStream inputStream = resource.getInputStream();
+                SELECT '기흥구' AS gu,
+                       `시군구`,
+                       `주택유형`,
+                       `계약년월`,
+                       `보증금(만원)`,
+                       `계약면적(㎡)`
+                FROM giheung_data
 
-            return objectMapper.readValue(
-                    inputStream,
-                    new TypeReference<List<TradeData>>() {}
-            );
+                UNION ALL
 
-        } catch (Exception e) {
-            throw new RuntimeException("거래 데이터 파일을 읽을 수 없습니다.");
-        }
+                SELECT '수지구' AS gu,
+                       `시군구`,
+                       `주택유형`,
+                       `계약년월`,
+                       `보증금(만원)`,
+                       `계약면적(㎡)`
+                FROM suji_data
+                """;
+
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            TradeData tradeData = new TradeData();
+
+            String address = rs.getString("시군구");
+            String dealYearMonth = rs.getString("계약년월");
+            String deposit = rs.getString("보증금(만원)");
+            String area = rs.getString("계약면적(㎡)");
+
+            tradeData.setGu(rs.getString("gu"));
+            tradeData.setDong(getDongFromAddress(address));
+            tradeData.setHouseType(rs.getString("주택유형"));
+            tradeData.setDealYear(getYearFromDealYearMonth(dealYearMonth));
+            tradeData.setPrice(getMoneyToLong(deposit));
+            tradeData.setTotalArea(getAreaToDouble(area));
+            tradeData.setLandArea(0.0);
+
+            return tradeData;
+        });
     }
 
     public List<RegionSummary> getRegionSummary() {
@@ -63,9 +97,19 @@ public class TradeDataService {
                 .sorted(Map.Entry.comparingByKey())
                 .map(entry -> {
                     List<TradeData> yearlyTrades = entry.getValue();
-                    long totalPrice = yearlyTrades.stream().mapToLong(TradeData::getPrice).sum();
+
+                    long totalPrice = 0;
                     long count = yearlyTrades.size();
-                    long averagePrice = count > 0 ? totalPrice / count : 0L;
+
+                    for (TradeData trade : yearlyTrades) {
+                        totalPrice += trade.getPrice();
+                    }
+
+                    long averagePrice = 0;
+
+                    if (count > 0) {
+                        averagePrice = totalPrice / count;
+                    }
 
                     return new PriceTrendPoint(
                             String.valueOf(entry.getKey()),
@@ -110,5 +154,43 @@ public class TradeDataService {
                 minPrice,
                 maxPrice
         );
+    }
+
+    private String getDongFromAddress(String address) {
+        if (address == null || address.isBlank()) {
+            return "";
+        }
+
+        String[] addressParts = address.split(" ");
+
+        return addressParts[addressParts.length - 1];
+    }
+
+    private int getYearFromDealYearMonth(String dealYearMonth) {
+        if (dealYearMonth == null || dealYearMonth.length() < 4) {
+            return 0;
+        }
+
+        String year = dealYearMonth.substring(0, 4);
+
+        return Integer.parseInt(year);
+    }
+
+    private long getMoneyToLong(String money) {
+        if (money == null || money.isBlank()) {
+            return 0L;
+        }
+
+        String cleanMoney = money.replace(",", "").trim();
+
+        return Long.parseLong(cleanMoney);
+    }
+
+    private double getAreaToDouble(String area) {
+        if (area == null || area.isBlank()) {
+            return 0.0;
+        }
+
+        return Double.parseDouble(area.trim());
     }
 }
