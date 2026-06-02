@@ -2,6 +2,7 @@ package com.example.demo.controller;
 
 import com.example.demo.dto.RegionSummary;
 import com.example.demo.dto.PriceTrendPoint;
+import com.example.demo.dto.RegionalAnalysisStat;
 import com.example.demo.dto.TradeData;
 import com.example.demo.service.TradeDataService;
 import org.springframework.web.bind.annotation.*;
@@ -32,5 +33,10 @@ public class TradeDataController {
     @GetMapping("/trend")
     public List<PriceTrendPoint> getPriceTrend() {
         return tradeDataService.getYearlyTrend();
+    }
+
+    @GetMapping("/regional-analysis")
+    public List<RegionalAnalysisStat> getRegionalAnalysis() {
+        return tradeDataService.getRegionalAnalysis();
     }
 }

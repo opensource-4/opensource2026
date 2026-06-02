@@ -5,8 +5,11 @@ public class TradeData {
     private String gu;
     private String dong;
     private String houseType;
+    private String rentType;
+    private String dealYearMonth;
     private int dealYear;
     private long price;
+    private long monthlyRent;
     private double landArea;
     private double totalArea;
 
@@ -34,6 +37,22 @@ public class TradeData {
         this.houseType = houseType;
     }
 
+    public String getRentType() {
+        return rentType;
+    }
+
+    public void setRentType(String rentType) {
+        this.rentType = rentType;
+    }
+
+    public String getDealYearMonth() {
+        return dealYearMonth;
+    }
+
+    public void setDealYearMonth(String dealYearMonth) {
+        this.dealYearMonth = dealYearMonth;
+    }
+
     public int getDealYear() {
         return dealYear;
     }
@@ -48,6 +67,14 @@ public class TradeData {
 
     public void setPrice(long price) {
         this.price = price;
+    }
+
+    public long getMonthlyRent() {
+        return monthlyRent;
+    }
+
+    public void setMonthlyRent(long monthlyRent) {
+        this.monthlyRent = monthlyRent;
     }
 
     public double getLandArea() {
