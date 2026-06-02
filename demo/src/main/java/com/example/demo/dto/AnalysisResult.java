@@ -10,10 +10,15 @@ public class AnalysisResult {
     private long mortgageAmount;
     private long priorTenantsAmount;
     private long auctionCost;
+    private boolean smallTenantApplied;
+    private boolean priorityRepaymentApplied;
+    private String recoveryRuleMessage;
 
     public AnalysisResult(String riskLevel, int recoveryRate, long depositAmount,
                           long recoverableAmount, long expectedAuctionPrice,
-                          long mortgageAmount, long priorTenantsAmount, long auctionCost) {
+                          long mortgageAmount, long priorTenantsAmount, long auctionCost,
+                          boolean smallTenantApplied, boolean priorityRepaymentApplied,
+                          String recoveryRuleMessage) {
 
         this.riskLevel = riskLevel;
         this.recoveryRate = recoveryRate;
@@ -23,6 +28,9 @@ public class AnalysisResult {
         this.mortgageAmount = mortgageAmount;
         this.priorTenantsAmount = priorTenantsAmount;
         this.auctionCost = auctionCost;
+        this.smallTenantApplied = smallTenantApplied;
+        this.priorityRepaymentApplied = priorityRepaymentApplied;
+        this.recoveryRuleMessage = recoveryRuleMessage;
     }
 
     public String getRiskLevel() {
@@ -55,5 +63,17 @@ public class AnalysisResult {
 
     public long getAuctionCost() {
         return auctionCost;
+    }
+
+    public boolean isSmallTenantApplied() {
+        return smallTenantApplied;
+    }
+
+    public boolean isPriorityRepaymentApplied() {
+        return priorityRepaymentApplied;
+    }
+
+    public String getRecoveryRuleMessage() {
+        return recoveryRuleMessage;
     }
 }

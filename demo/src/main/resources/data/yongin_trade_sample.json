@@ -1,0 +1,38 @@
+[
+  {
+    "gu": "수지구",
+    "dong": "풍덕천동",
+    "houseType": "다가구",
+    "dealYear": 2024,
+    "price": 650000000,
+    "landArea": 120.5,
+    "totalArea": 210.3
+  },
+  {
+    "gu": "기흥구",
+    "dong": "구갈동",
+    "houseType": "단독",
+    "dealYear": 2024,
+    "price": 520000000,
+    "landArea": 98.2,
+    "totalArea": 180.7
+  },
+  {
+    "gu": "처인구",
+    "dong": "김량장동",
+    "houseType": "다가구",
+    "dealYear": 2023,
+    "price": 430000000,
+    "landArea": 110.0,
+    "totalArea": 195.2
+  },
+  {
+    "gu": "수지구",
+    "dong": "죽전동",
+    "houseType": "다가구",
+    "dealYear": 2023,
+    "price": 720000000,
+    "landArea": 130.0,
+    "totalArea": 240.0
+  }
+]
