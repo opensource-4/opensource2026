@@ -1,6 +1,7 @@
 package com.example.demo.controller;
 
 import com.example.demo.dto.RegionSummary;
+import com.example.demo.dto.PriceTrendPoint;
 import com.example.demo.dto.TradeData;
 import com.example.demo.service.TradeDataService;
 import org.springframework.web.bind.annotation.*;
@@ -26,5 +27,10 @@ public class TradeDataController {
     @GetMapping("/summary")
     public List<RegionSummary> getRegionSummary() {
         return tradeDataService.getRegionSummary();
+    }
+
+    @GetMapping("/trend")
+    public List<PriceTrendPoint> getPriceTrend() {
+        return tradeDataService.getYearlyTrend();
     }
 }
