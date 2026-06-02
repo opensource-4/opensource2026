@@ -334,10 +334,13 @@ def build_pipeline(params, device):
 
 def evaluate(y_true, pred):
     mae = mean_absolute_error(y_true, pred)
-    rmse = np.sqrt(mean_squared_error(y_true, pred))
+    mse = mean_squared_error(y_true, pred)
+    rmse = np.sqrt(mse)
     r2 = r2_score(y_true, pred)
     y_true_array = np.asarray(y_true, dtype=float)
     pred_array = np.asarray(pred, dtype=float)
+    error = pred_array - y_true_array
+    abs_error = np.abs(error)
     nonzero_mask = y_true_array != 0
     mape = (
         np.mean(
@@ -357,11 +360,59 @@ def evaluate(y_true, pred):
     )
     return {
         "MAE_만원": float(mae),
+        "MSE_만원2": float(mse),
         "RMSE_만원": float(rmse),
+        "MedianAE_만원": float(np.median(abs_error)),
+        "MeanError_만원": float(np.mean(error)),
+        "MaxAE_만원": float(np.max(abs_error)),
         "R2": float(r2),
         "MAPE_%": float(mape),
         "WMAPE_%": float(wmape),
     }
+
+
+def summarize_price_level(y_true, pred, baseline):
+    y_true_array = np.asarray(y_true, dtype=float)
+    pred_array = np.asarray(pred, dtype=float)
+    baseline_array = np.asarray(baseline, dtype=float)
+    abs_error = np.abs(pred_array - y_true_array)
+    baseline_abs_error = np.abs(baseline_array - y_true_array)
+
+    return {
+        "actual_avg_만원": float(np.mean(y_true_array)),
+        "predicted_avg_만원": float(np.mean(pred_array)),
+        "baseline_avg_만원": float(np.mean(baseline_array)),
+        "model_avg_abs_error_만원": float(np.mean(abs_error)),
+        "baseline_avg_abs_error_만원": float(np.mean(baseline_abs_error)),
+        "model_median_abs_error_만원": float(np.median(abs_error)),
+        "baseline_median_abs_error_만원": float(np.median(baseline_abs_error)),
+    }
+
+
+def make_evaluation_table(df, pred, baseline):
+    actual = np.asarray(df["price"], dtype=float)
+    predicted = np.asarray(pred, dtype=float)
+    baseline_array = np.asarray(baseline, dtype=float)
+    error = predicted - actual
+
+    columns = [
+        "contract_ym",
+        "gu",
+        "dong",
+        "house_type",
+        "total_area",
+        "land_area",
+        "building_age",
+    ]
+    table = df[columns].copy()
+    table["actual_price_만원"] = actual
+    table["predicted_price_만원"] = predicted
+    table["error_만원"] = error
+    table["abs_error_만원"] = np.abs(error)
+    table["baseline_price_만원"] = baseline_array
+    table["baseline_error_만원"] = baseline_array - actual
+    table["baseline_abs_error_만원"] = np.abs(baseline_array - actual)
+    return table
 
 
 def get_param_sets(mode):
@@ -487,7 +538,30 @@ def train_ensemble(data, mode, device):
     test_pred = predict_price(x_test)
     train_metrics = evaluate(train_df["price"], train_pred)
     test_metrics = evaluate(y_test, test_pred)
+    train_baseline_only_metrics = evaluate(train_df["price"], x_train["baseline_price"].values)
     baseline_only_metrics = evaluate(y_test, x_test["baseline_price"].values)
+    train_price_summary = summarize_price_level(
+        train_df["price"],
+        train_pred,
+        x_train["baseline_price"].values,
+    )
+    test_price_summary = summarize_price_level(
+        y_test,
+        test_pred,
+        x_test["baseline_price"].values,
+    )
+    evaluation_tables = {
+        "train": make_evaluation_table(
+            train_df,
+            train_pred,
+            x_train["baseline_price"].values,
+        ),
+        "test": make_evaluation_table(
+            test_df,
+            test_pred,
+            x_test["baseline_price"].values,
+        ),
+    }
 
     artifact = {
         "raw_pipeline": final_raw_pipeline,
@@ -502,7 +576,10 @@ def train_ensemble(data, mode, device):
         "base_features": BASE_FEATURES,
         "metrics": test_metrics,
         "train_metrics": train_metrics,
+        "train_baseline_only_metrics": train_baseline_only_metrics,
         "baseline_only_metrics": baseline_only_metrics,
+        "train_price_summary": train_price_summary,
+        "test_price_summary": test_price_summary,
     }
 
     result = {
@@ -520,7 +597,10 @@ def train_ensemble(data, mode, device):
         "best_weights": list(best_weights),
         "metrics": test_metrics,
         "train_metrics": train_metrics,
+        "train_baseline_only_metrics": train_baseline_only_metrics,
         "baseline_only_metrics": baseline_only_metrics,
+        "train_price_summary": train_price_summary,
+        "test_price_summary": test_price_summary,
         "r2_gap": float(train_metrics["R2"] - test_metrics["R2"]),
         "target_encode_cols": TARGET_ENCODE_COLS,
         "num_features": NUM_FEATURES,
@@ -528,13 +608,20 @@ def train_ensemble(data, mode, device):
         "base_features": BASE_FEATURES,
     }
 
-    return artifact, result
+    return artifact, result, evaluation_tables
+
+
+def format_manwon(value):
+    return f"{value:,.2f}만원 ({value / 10_000:,.2f}억원)"
 
 
 def write_summary(path, result):
     metrics = result["metrics"]
     train_metrics = result["train_metrics"]
+    train_baseline_metrics = result["train_baseline_only_metrics"]
     baseline_metrics = result["baseline_only_metrics"]
+    train_summary = result["train_price_summary"]
+    test_summary = result["test_price_summary"]
     content = f"""# Experiment Summary
 
 ## Latest Run
@@ -547,20 +634,44 @@ def write_summary(path, result):
 - Test period: `{result["test_period"][0]}` ~ `{result["test_period"][1]}`
 - Best weights: `{result["best_weights"]}`
 
-## Metrics
+## Price Error Metrics
+
+- Train MAE: `{format_manwon(train_metrics["MAE_만원"])}`
+- Test MAE: `{format_manwon(metrics["MAE_만원"])}`
+- Train RMSE: `{format_manwon(train_metrics["RMSE_만원"])}`
+- Test RMSE: `{format_manwon(metrics["RMSE_만원"])}`
+- Train MSE: `{train_metrics["MSE_만원2"]:,.2f}` 만원^2
+- Test MSE: `{metrics["MSE_만원2"]:,.2f}` 만원^2
+- Test MedianAE: `{format_manwon(metrics["MedianAE_만원"])}`
+- Test MaxAE: `{format_manwon(metrics["MaxAE_만원"])}`
+- Test MAPE: `{metrics["MAPE_%"]:.2f}%`
+- Test WMAPE: `{metrics["WMAPE_%"]:.2f}%`
+
+## Baseline Price Used For Evaluation
+
+- Train actual average: `{format_manwon(train_summary["actual_avg_만원"])}`
+- Train model predicted average: `{format_manwon(train_summary["predicted_avg_만원"])}`
+- Train baseline average: `{format_manwon(train_summary["baseline_avg_만원"])}`
+- Train model average absolute error: `{format_manwon(train_summary["model_avg_abs_error_만원"])}`
+- Train baseline average absolute error: `{format_manwon(train_summary["baseline_avg_abs_error_만원"])}`
+- Test actual average: `{format_manwon(test_summary["actual_avg_만원"])}`
+- Test model predicted average: `{format_manwon(test_summary["predicted_avg_만원"])}`
+- Test baseline average: `{format_manwon(test_summary["baseline_avg_만원"])}`
+- Test model average absolute error: `{format_manwon(test_summary["model_avg_abs_error_만원"])}`
+- Test baseline average absolute error: `{format_manwon(test_summary["baseline_avg_abs_error_만원"])}`
+
+## R2 Reference
 
 - Train R2: `{train_metrics["R2"]:.6f}`
 - Test R2: `{metrics["R2"]:.6f}`
 - R2 gap: `{result["r2_gap"]:.6f}`
-- Test MAE: `{metrics["MAE_만원"]:.2f}` 만원
-- Test RMSE: `{metrics["RMSE_만원"]:.2f}` 만원
-- Test MAPE: `{metrics["MAPE_%"]:.2f}%`
-- Test WMAPE: `{metrics["WMAPE_%"]:.2f}%`
 
-## Baseline Only
+## Baseline Only Metrics
 
-- Baseline-only R2: `{baseline_metrics["R2"]:.6f}`
-- Baseline-only MAE: `{baseline_metrics["MAE_만원"]:.2f}` 만원
+- Train baseline-only MAE: `{format_manwon(train_baseline_metrics["MAE_만원"])}`
+- Test baseline-only MAE: `{format_manwon(baseline_metrics["MAE_만원"])}`
+- Train baseline-only RMSE: `{format_manwon(train_baseline_metrics["RMSE_만원"])}`
+- Test baseline-only RMSE: `{format_manwon(baseline_metrics["RMSE_만원"])}`
 
 ## Changes In This Script
 
@@ -589,7 +700,7 @@ def main():
 
     df = pd.read_csv(args.data)
     data = prepare_dataframe(df)
-    artifact, result = train_ensemble(data, mode=args.mode, device=args.device)
+    artifact, result, evaluation_tables = train_ensemble(data, mode=args.mode, device=args.device)
 
     model_path = output_dir / "xgb_price_unit_ensemble_model.joblib"
     metrics_path = output_dir / "xgb_price_unit_ensemble_metrics.json"
@@ -603,8 +714,18 @@ def main():
     print(json.dumps(result["train_metrics"], ensure_ascii=False, indent=2))
     print("===== Test Metrics =====")
     print(json.dumps(result["metrics"], ensure_ascii=False, indent=2))
-    print("===== Baseline Only Metrics =====")
+    print("===== Train Baseline Only Metrics =====")
+    print(json.dumps(result["train_baseline_only_metrics"], ensure_ascii=False, indent=2))
+    print("===== Test Baseline Only Metrics =====")
     print(json.dumps(result["baseline_only_metrics"], ensure_ascii=False, indent=2))
+    print("===== Train Price Summary =====")
+    print(json.dumps(result["train_price_summary"], ensure_ascii=False, indent=2))
+    print("===== Test Price Summary =====")
+    print(json.dumps(result["test_price_summary"], ensure_ascii=False, indent=2))
+    print("===== Train Evaluation Sample =====")
+    print(evaluation_tables["train"].head(20).to_string(index=False))
+    print("===== Test Evaluation Sample =====")
+    print(evaluation_tables["test"].head(20).to_string(index=False))
     print(f"R2 gap: {result['r2_gap']:.6f}")
     print(f"model saved: {model_path}")
     print(f"metrics saved: {metrics_path}")
