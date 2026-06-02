@@ -39,6 +39,41 @@ export interface TradeTrendPoint {
   transactionCount: number;
 }
 
+export interface TradeData {
+  gu: string;
+  dong: string;
+  houseType: string;
+  dealYear: number;
+  price: number;
+  monthlyRent: number;
+  landArea: number;
+  totalArea: number;
+}
+
+export interface AreaBandStat {
+  band: string;
+  avgDeposit: number;
+  transactionCount: number;
+}
+
+export interface RegionalMonthlyTrendPoint {
+  month: string;
+  avgDeposit: number;
+  transactionCount: number;
+}
+
+export interface RegionalAnalysisStat {
+  region: string;
+  parentRegion?: string;
+  avgDeposit: number;
+  avgMonthlyRent: number;
+  transactions: number;
+  jeonseCount: number;
+  monthlyRentCount: number;
+  areaBands: AreaBandStat[];
+  monthlyTrend: RegionalMonthlyTrendPoint[];
+}
+
 export async function analyzeRisk(data: AnalysisRequest): Promise<AnalysisResult> {
   const response = await fetch(`${API_BASE_URL}/analyze`, {
     method: "POST",
@@ -50,6 +85,36 @@ export async function analyzeRisk(data: AnalysisRequest): Promise<AnalysisResult
 
   if (!response.ok) {
     throw new Error("분석 요청에 실패했습니다.");
+  }
+
+  return await response.json();
+}
+
+export async function getTrades(): Promise<TradeData[]> {
+  const response = await fetch(`${API_BASE_URL}/trades`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error("거래 데이터 조회에 실패했습니다.");
+  }
+
+  return await response.json();
+}
+
+export async function getRegionalAnalysis(): Promise<RegionalAnalysisStat[]> {
+  const response = await fetch(`${API_BASE_URL}/trades/regional-analysis`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error("지역 분석 데이터 조회에 실패했습니다.");
   }
 
   return await response.json();
