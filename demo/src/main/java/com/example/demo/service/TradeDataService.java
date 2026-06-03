@@ -95,24 +95,33 @@ public class TradeDataService {
     public List<PriceTrendPoint> getYearlyTrend() {
         List<TradeData> trades = getAllTrades();
 
-        return trades.stream()
+        Map<Integer, List<TradeData>> groupedByYear = trades.stream()
+                .filter(trade -> trade.getDealYear() > 0)
                 .collect(Collectors.groupingBy(
                         TradeData::getDealYear,
                         LinkedHashMap::new,
                         Collectors.toList()
-                ))
-                .entrySet()
-                .stream()
-                .filter(entry -> entry.getKey() > 0)
+                ));
+
+        return groupedByYear.entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
                 .map(entry -> {
                     List<TradeData> yearlyTrades = entry.getValue();
-                    long totalDeposit = yearlyTrades.stream().mapToLong(TradeData::getPrice).sum();
+                    long totalPrice = 0;
                     long count = yearlyTrades.size();
+
+                    for (TradeData trade : yearlyTrades) {
+                        totalPrice += trade.getPrice();
+                    }
+
+                    long averagePrice = 0;
+                    if (count > 0) {
+                        averagePrice = totalPrice / count;
+                    }
 
                     return new PriceTrendPoint(
                             String.valueOf(entry.getKey()),
-                            count > 0 ? totalDeposit / count : 0,
+                            averagePrice,
                             count
                     );
                 })
