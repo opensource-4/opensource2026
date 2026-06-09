@@ -17,8 +17,8 @@ def health():
     }
 
 
-@app.post("/predict-price", response_model=PricePredictionResponse)
-def predict_price(request: PricePredictionRequest):
+@app.post("/predict", response_model=PricePredictionResponse)
+def predict(request: PricePredictionRequest):
     try:
         return model_service.predict(request)
     except RuntimeError as exc:
