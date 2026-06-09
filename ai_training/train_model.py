@@ -933,6 +933,54 @@ def train_type_bundle(
     }
 
 
+def compute_baseline_lookup(df):
+    """훈련 데이터에서 추론용 베이스라인 통계 테이블 생성.
+
+    dong+house_type → gu+house_type → house_type → global 순서의 4단계 fallback 구조.
+    """
+    lookup = {}
+
+    grp = df.groupby(["dong", "house_type"])["baseline_unit_price"].agg(["median", "count"])
+    lookup["dong_house_type"] = {
+        (idx[0], idx[1]): {"unit_price": float(row["median"]), "count": int(row["count"]), "source_level": 3.0}
+        for idx, row in grp.iterrows()
+        if not np.isnan(row["median"])
+    }
+
+    grp = df.groupby(["gu", "house_type"])["baseline_unit_price"].agg(["median", "count"])
+    lookup["gu_house_type"] = {
+        (idx[0], idx[1]): {"unit_price": float(row["median"]), "count": int(row["count"]), "source_level": 2.0}
+        for idx, row in grp.iterrows()
+        if not np.isnan(row["median"])
+    }
+
+    grp = df.groupby("house_type")["baseline_unit_price"].agg(["median", "count"])
+    lookup["house_type"] = {
+        idx: {"unit_price": float(row["median"]), "count": int(row["count"]), "source_level": 1.0}
+        for idx, row in grp.iterrows()
+        if not np.isnan(row["median"])
+    }
+
+    global_median = df["baseline_unit_price"].median()
+    lookup["global"] = {
+        "unit_price": float(global_median) if not np.isnan(global_median) else 0.0,
+        "count": int(len(df)),
+        "source_level": 0.0,
+    }
+
+    return lookup
+
+
+def compute_road_condition_lookup(df):
+    """dong+house_type별 최빈 도로조건 저장."""
+    result = {}
+    for (dong, house_type), group in df.groupby(["dong", "house_type"]):
+        vc = group["road_condition"].value_counts()
+        if len(vc) > 0:
+            result[(dong, house_type)] = vc.index[0]
+    return result
+
+
 def train_ensemble(
     data,
     mode,
@@ -949,6 +997,8 @@ def train_ensemble(
     model_profile,
 ):
     train_df, test_df = time_based_split(data, test_size=TEST_SIZE)
+    baseline_lookup = compute_baseline_lookup(train_df)
+    road_condition_lookup = compute_road_condition_lookup(train_df)
     params = get_param_sets(mode, model_profile=model_profile)
     x_train = train_df[BASE_FEATURES]
     x_test = test_df[BASE_FEATURES]
@@ -1029,6 +1079,8 @@ def train_ensemble(
         "num_features": NUM_FEATURES,
         "cat_features": CAT_FEATURES,
         "base_features": BASE_FEATURES,
+        "baseline_lookup": baseline_lookup,
+        "road_condition_lookup": road_condition_lookup,
         "high_price_threshold_만원": float(high_price_threshold),
         "high_price_weight": float(high_price_weight),
         "risk_segment_weight": float(risk_segment_weight),

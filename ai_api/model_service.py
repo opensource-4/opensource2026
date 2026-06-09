@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+import logging
 import os
+import re
 import sys
 from pathlib import Path
 from typing import Optional
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
 import joblib
 import numpy as np
@@ -75,8 +80,14 @@ def _extract_gu(address: str) -> str:
 
 
 def _extract_dong(address: str) -> str:
-    parts = str(address).split()
-    return _clean_category(parts[-1]) if parts else "기타"
+    tokens = str(address).split()
+    # 뒤에서부터 동/읍/면/리로 끝나는 토큰을 찾는다 (괄호 제거 후 검사)
+    for token in reversed(tokens):
+        clean = re.sub(r"[()（）]", "", token)
+        if re.search(r"[동읍면리]$", clean):
+            return _clean_category(clean)
+    # 찾지 못하면 마지막 토큰 fallback
+    return _clean_category(tokens[-1]) if tokens else "기타"
 
 
 def _format_manwon(value: float) -> str:
@@ -95,7 +106,46 @@ def _format_manwon(value: float) -> str:
     return sign + " ".join(parts)
 
 
-def _build_features(request: PricePredictionRequest) -> pd.DataFrame:
+def _lookup_baseline(
+    bundle: dict, dong: str, gu: str, house_type: str, total_area: float
+):
+    """모델 번들에 저장된 통계로 baseline 피처 4개를 반환.
+    dong+house_type → gu+house_type → house_type → global 순서로 fallback.
+    번들에 룩업 테이블이 없으면 NaN 반환 (SimpleImputer가 대신 채움).
+    """
+    lk = bundle.get("baseline_lookup") if bundle else None
+    if not lk:
+        return np.nan, np.nan, np.nan, np.nan
+
+    entry = (
+        lk.get("dong_house_type", {}).get((dong, house_type))
+        or lk.get("gu_house_type", {}).get((gu, house_type))
+        or lk.get("house_type", {}).get(house_type)
+        or lk.get("global")
+    )
+    if entry is None:
+        return np.nan, np.nan, np.nan, np.nan
+
+    unit_price = entry["unit_price"]
+    return (
+        unit_price,
+        unit_price * total_area,
+        float(entry["count"]),
+        entry["source_level"],
+    )
+
+
+def _lookup_road_condition(bundle: dict, dong: str, house_type: str) -> str:
+    """모델 번들에 저장된 dong+house_type별 최빈 도로조건 반환.
+    번들에 테이블이 없거나 해당 조합이 없으면 '기타' 반환.
+    """
+    lk = bundle.get("road_condition_lookup") if bundle else None
+    if not lk:
+        return "기타"
+    return lk.get((dong, house_type), "기타")
+
+
+def _build_features(request: PricePredictionRequest, bundle: Optional[dict] = None) -> pd.DataFrame:
     total_area = float(request.total_area)
     land_area = float(request.land_area)
     build_year_raw = int(request.build_year)
@@ -109,7 +159,13 @@ def _build_features(request: PricePredictionRequest) -> pd.DataFrame:
     gu = _extract_gu(request.address)
     dong = _extract_dong(request.address)
     house_type = _clean_category(request.building_type)
-    road_condition = _clean_category(request.road_condition)
+
+    # 사용자가 도로조건을 모르므로 번들에서 dong+house_type 최빈값 조회 후 fallback
+    road_condition = _lookup_road_condition(bundle, dong, house_type)
+
+    # 번들 룩업 테이블에서 베이스라인 피처 계산
+    baseline_unit_price, baseline_price, baseline_count, baseline_source_level = \
+        _lookup_baseline(bundle, dong, gu, house_type, total_area)
 
     lat = float(request.latitude) if request.latitude is not None else np.nan
     lon = float(request.longitude) if request.longitude is not None else np.nan
@@ -141,11 +197,10 @@ def _build_features(request: PricePredictionRequest) -> pd.DataFrame:
         "lat_lon_interaction": lat_val * lon_val,
         "lat_sq": lat_val ** 2,
         "lon_sq": lon_val ** 2,
-        # historical baseline: NaN -> SimpleImputer(median) fills with training-time median
-        "baseline_unit_price": np.nan,
-        "baseline_price": np.nan,
-        "baseline_count": np.nan,
-        "baseline_source_level": np.nan,
+        "baseline_unit_price": baseline_unit_price,
+        "baseline_price": baseline_price,
+        "baseline_count": baseline_count,
+        "baseline_source_level": baseline_source_level,
         "gu": gu,
         "dong": dong,
         "road_condition": road_condition,
@@ -188,7 +243,17 @@ class PriceModelService:
         if self.bundle is None:
             raise RuntimeError(self.load_error or "Model is not loaded")
 
-        x = _build_features(request)
+        x = _build_features(request, self.bundle)
+
+        debug_cols = [
+            "total_area", "land_area", "far", "land_to_total_ratio", "total_to_land_ratio",
+            "building_age", "build_year", "build_year_missing",
+            "gu", "dong", "road_condition", "house_type",
+            "gu_house_type", "dong_house_type", "dong_road",
+            "baseline_unit_price", "baseline_price", "baseline_count", "baseline_source_level",
+        ]
+        logger.info("[predict] feature row:\n%s", x[[c for c in debug_cols if c in x.columns]].to_string())
+
         b = self.bundle
 
         raw_pred = np.maximum(_pipeline_predict(b["raw_pipeline"], x), 0)
