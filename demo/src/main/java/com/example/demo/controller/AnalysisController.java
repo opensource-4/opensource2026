@@ -68,12 +68,17 @@ public class AnalysisController {
 
     private long predictExpectedAuctionPrice(AnalysisRequest request) {
         try {
+            int buildingAgeYears = parseInt(request.getBuildingAge(), 0);
+            int buildYear = buildingAgeYears > 0
+                    ? Math.max(1800, LocalDate.now().getYear() - buildingAgeYears)
+                    : LocalDate.now().getYear();
+
             PricePredictionRequest predictionRequest = new PricePredictionRequest(
                     request.getAddress(),
                     request.getBuildingType(),
                     parseDouble(request.getArea(), 1.0),
                     parseDouble(request.getLandArea(), parseDouble(request.getArea(), 1.0)),
-                    parseInt(request.getBuildingAge(), LocalDate.now().getYear()),
+                    buildYear,
                     LocalDate.now().getYear(),
                     LocalDate.now().getMonthValue(),
                     LocalDate.now().getDayOfMonth(),
@@ -83,8 +88,8 @@ public class AnalysisController {
 
             PricePredictionResponse response = pricePredictionClient.predict(predictionRequest);
 
-            if (response != null && response.getExpectedAuctionPriceKrw() > 0) {
-                return response.getExpectedAuctionPriceKrw();
+            if (response != null && response.getPredictedPriceManwon() > 0) {
+                return (long)(response.getPredictedPriceManwon() * 10_000L * LIQUIDATION_RATE);
             }
         } catch (Exception e) {
             System.out.println("AI price prediction failed. Using fallback auction price.");
