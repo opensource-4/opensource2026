@@ -116,7 +116,7 @@ export function AnalysisInputPage() {
                     type="text"
                     value={formData.address}
                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                    placeholder="예: 서울특별시 강남구 역삼동 123-45"
+                    placeholder="예: 용인시 수지구 죽전동 123-456"
                     className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-12"
                   />
                   <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
@@ -198,12 +198,12 @@ export function AnalysisInputPage() {
             <div className="space-y-6">
               <div>
                 <h2 className="text-2xl font-bold text-slate-900 mb-2">계약 정보를 입력해주세요</h2>
-                <p className="text-slate-600">전세 계약서 내용을 바탕으로 입력해주세요</p>
+                <p className="text-slate-600">계약서 내용을 바탕으로 입력해주세요</p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
-                  전세 보증금 <span className="text-red-500">*</span>
+                  보증금 <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
@@ -322,9 +322,6 @@ export function AnalysisInputPage() {
         </div>
 
         {/* Help */}
-        <div className="mt-6 text-center text-sm text-slate-500">
-          입력하신 정보는 안전하게 암호화되어 처리됩니다
-        </div>
       </div>
     </div>
   );

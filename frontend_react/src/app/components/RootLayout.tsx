@@ -20,7 +20,7 @@ export function RootLayout() {
                 <BarChart3 className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="font-semibold text-slate-900">전세안심분석</h1>
+                <h1 className="font-semibold text-slate-900">용인 원룸 보증금분석</h1>
                 <p className="text-xs text-slate-500">AI 보증금 위험도 분석</p>
               </div>
             </Link>

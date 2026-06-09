@@ -15,12 +15,13 @@ export function LandingPage() {
             </div>
 
             <h1 className="text-5xl font-bold text-slate-900 mb-6">
-              전세 보증금,<br />안전하게 지키세요
+              원룸 보증금,<br />안전하게 지키세요
             </h1>
 
             <p className="text-xl text-slate-600 mb-8">
               실거래가와 근저당 정보를 AI로 분석하여<br />
-              경매 시 보증금 회수 가능성을 미리 확인하세요
+              경매 시 보증금 회수 가능성을 미리 확인하세요<br />
+              월세, 반전세를 모두 포함합니다.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
