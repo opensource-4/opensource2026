@@ -19,7 +19,7 @@ public class PricePredictionClient {
 
     public PricePredictionResponse predict(PricePredictionRequest request) {
         return restClient.post()
-                .uri("/predict-price")
+                .uri("/predict")
                 .body(request)
                 .retrieve()
                 .body(PricePredictionResponse.class);
