@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pydantic import BaseModel, Field
 
 
@@ -11,12 +13,10 @@ class PricePredictionRequest(BaseModel):
     contract_month: int = Field(default=1, ge=1, le=12)
     contract_day: int = Field(default=1, ge=1, le=31)
     road_condition: str = "기타"
-    liquidation_rate: float = Field(default=0.85, gt=0, le=1)
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
 
 
 class PricePredictionResponse(BaseModel):
-    predicted_price_manwon: float
-    predicted_price_krw: int
-    expected_auction_price_krw: int
-    liquidation_rate: float
-    model_loaded: bool
+    predicted_price_manwon: int
+    predicted_price_text: str
