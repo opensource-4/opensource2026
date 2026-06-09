@@ -11,7 +11,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/trades")
-@CrossOrigin(origins = "http://localhost:5173")
 public class TradeDataController {
 
     private final TradeDataService tradeDataService;

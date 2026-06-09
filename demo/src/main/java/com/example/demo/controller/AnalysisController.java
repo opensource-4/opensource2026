@@ -5,7 +5,6 @@ import com.example.demo.dto.AnalysisResult;
 import com.example.demo.dto.PricePredictionRequest;
 import com.example.demo.dto.PricePredictionResponse;
 import com.example.demo.service.PricePredictionClient;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -15,7 +14,6 @@ import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/api")
-@CrossOrigin(origins = "http://localhost:5173")
 public class AnalysisController {
 
     private static final long FALLBACK_EXPECTED_AUCTION_PRICE = 650_000_000L;
