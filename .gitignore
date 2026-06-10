@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# 환경변수
+.env
+.env.*
+
+# 로그
+*.log
+
+# 학습 임시 캐시
+ai_training/yongin_coord_cache.csv
+
+# IDE
+.idea/
+.vscode/
+*.code-workspace
+
+# OS
+.DS_Store
+Thumbs.db
