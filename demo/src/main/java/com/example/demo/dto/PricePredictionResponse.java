@@ -7,17 +7,8 @@ public class PricePredictionResponse {
     @JsonProperty("predicted_price_manwon")
     private double predictedPriceManwon;
 
-    @JsonProperty("predicted_price_krw")
-    private long predictedPriceKrw;
-
-    @JsonProperty("expected_auction_price_krw")
-    private long expectedAuctionPriceKrw;
-
-    @JsonProperty("liquidation_rate")
-    private double liquidationRate;
-
-    @JsonProperty("model_loaded")
-    private boolean modelLoaded;
+    @JsonProperty("predicted_price_text")
+    private String predictedPriceText;
 
     public double getPredictedPriceManwon() {
         return predictedPriceManwon;
@@ -27,35 +18,11 @@ public class PricePredictionResponse {
         this.predictedPriceManwon = predictedPriceManwon;
     }
 
-    public long getPredictedPriceKrw() {
-        return predictedPriceKrw;
+    public String getPredictedPriceText() {
+        return predictedPriceText;
     }
 
-    public void setPredictedPriceKrw(long predictedPriceKrw) {
-        this.predictedPriceKrw = predictedPriceKrw;
-    }
-
-    public long getExpectedAuctionPriceKrw() {
-        return expectedAuctionPriceKrw;
-    }
-
-    public void setExpectedAuctionPriceKrw(long expectedAuctionPriceKrw) {
-        this.expectedAuctionPriceKrw = expectedAuctionPriceKrw;
-    }
-
-    public double getLiquidationRate() {
-        return liquidationRate;
-    }
-
-    public void setLiquidationRate(double liquidationRate) {
-        this.liquidationRate = liquidationRate;
-    }
-
-    public boolean isModelLoaded() {
-        return modelLoaded;
-    }
-
-    public void setModelLoaded(boolean modelLoaded) {
-        this.modelLoaded = modelLoaded;
+    public void setPredictedPriceText(String predictedPriceText) {
+        this.predictedPriceText = predictedPriceText;
     }
 }

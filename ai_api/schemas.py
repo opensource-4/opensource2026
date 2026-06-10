@@ -1,9 +1,11 @@
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class PricePredictionRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     address: str = ""
     building_type: str = Field(default="기타")
     total_area: float = Field(gt=0)

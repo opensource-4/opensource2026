@@ -255,14 +255,6 @@ export function ResultsPage() {
               </p>
             </div>
             <div className="flex gap-2">
-              <button className="flex items-center gap-2 px-4 py-2 border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors">
-                <Share2 className="w-4 h-4" />
-                공유
-              </button>
-              <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors">
-                <Download className="w-4 h-4" />
-                PDF 다운로드
-              </button>
             </div>
           </div>
         </div>

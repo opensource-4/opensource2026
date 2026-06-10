@@ -66,10 +66,12 @@ public class AnalysisController {
 
     private long predictExpectedAuctionPrice(AnalysisRequest request) {
         try {
-            int buildingAgeYears = parseInt(request.getBuildingAge(), 0);
-            int buildYear = buildingAgeYears > 0
-                    ? Math.max(1800, LocalDate.now().getYear() - buildingAgeYears)
-                    : LocalDate.now().getYear();
+            int buildingAgeInput = parseInt(request.getBuildingAge(), 0);
+            int currentYear = LocalDate.now().getYear();
+            // 프론트엔드는 건축년도(예: 2020)를 전송 — 나이(연수)가 아님
+            int buildYear = (buildingAgeInput >= 1800 && buildingAgeInput <= currentYear)
+                    ? buildingAgeInput
+                    : currentYear;
 
             PricePredictionRequest predictionRequest = new PricePredictionRequest(
                     request.getAddress(),
@@ -80,8 +82,7 @@ public class AnalysisController {
                     LocalDate.now().getYear(),
                     LocalDate.now().getMonthValue(),
                     LocalDate.now().getDayOfMonth(),
-                    "기타",
-                    LIQUIDATION_RATE
+                    "기타"
             );
 
             PricePredictionResponse response = pricePredictionClient.predict(predictionRequest);

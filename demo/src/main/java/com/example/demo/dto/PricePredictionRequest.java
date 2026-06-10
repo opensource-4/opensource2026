@@ -29,13 +29,10 @@ public class PricePredictionRequest {
     @JsonProperty("road_condition")
     private String roadCondition;
 
-    @JsonProperty("liquidation_rate")
-    private double liquidationRate;
-
     public PricePredictionRequest(String address, String buildingType, double totalArea,
                                   double landArea, int buildYear, int contractYear,
                                   int contractMonth, int contractDay,
-                                  String roadCondition, double liquidationRate) {
+                                  String roadCondition) {
         this.address = address;
         this.buildingType = buildingType;
         this.totalArea = totalArea;
@@ -45,7 +42,6 @@ public class PricePredictionRequest {
         this.contractMonth = contractMonth;
         this.contractDay = contractDay;
         this.roadCondition = roadCondition;
-        this.liquidationRate = liquidationRate;
     }
 
     public String getAddress() {
@@ -82,9 +78,5 @@ public class PricePredictionRequest {
 
     public String getRoadCondition() {
         return roadCondition;
-    }
-
-    public double getLiquidationRate() {
-        return liquidationRate;
     }
 }
