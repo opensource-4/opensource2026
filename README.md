@@ -1,265 +1,200 @@
-# opensource2026
+# 용인 전월세 보증금 회수 위험 분석 서비스
 
-# 용인시 단독·다가구 보증금 회수 안전도 분석 백엔드
+용인시 전월세 실거래 데이터와 AI 가격 예측 모델을 활용해 임차인의 보증금 회수 가능성을 분석하는 웹 서비스입니다.
 
-대학생 원룸 세입자를 위한 보증금 회수 가능 여부 분석 서비스의 Spring Boot 백엔드입니다.
+프론트엔드는 React/Vite, 백엔드는 Spring Boot, AI 예측 API는 FastAPI로 구성되어 있습니다. 배포는 프론트엔드와 AI API를 Render, Spring Boot 백엔드를 Railway에서 운영하는 구성을 기준으로 합니다.
 
----
+## 주요 기능
 
-## 프로젝트 개요
-
-월세 원룸과 단독·다가구 주택은 아파트처럼 시세를 확인하기 어렵고, 근저당이나 선순위 임차보증금이 있는 경우 경매 상황에서 보증금을 돌려받을 수 있는지 판단하기 어렵습니다.
-
-이 백엔드는 사용자가 입력한 보증금, 근저당 설정액, 선순위 임차보증금, 건물 정보를 바탕으로 외부 AI 시세 예측 API와 연동해 예상 경매가를 계산하고, 보증금 회수 가능 금액과 위험 등급을 반환합니다. 또한 용인시 거래 데이터를 기반으로 지역별 요약, 연도별 추세, 지역 상세 분석 API를 제공합니다.
-
----
-
-## 현재 구현 기능
-
-- 보증금 안전도 분석 API 제공
-- 외부 AI 시세 예측 API(`/predict`) 호출
-- AI 예측 실패 시 기본 예상 경매가로 대체 계산
-- 근저당 설정액, 선순위 임차보증금, 경매 비용 반영
-- 소액임차인 및 최우선변제 기준 반영
-- 회수 가능 금액, 회수율, 위험 등급 반환
-- 용인시 거래 데이터 조회 및 통계 API 제공
-- 애플리케이션 시작 시 `transactions.csv` 데이터 적재 로직 포함
-
----
-
-## 안전도 분석 기준
-
-현재 코드에 반영된 기준은 다음과 같습니다.
-
-| 항목 | 값 |
-|------|------|
-| AI 예측 실패 시 기본 예상 경매가 | 650,000,000원 |
-| 예상 경매가 산정 | AI 추정 시세 × 85% |
-| 경매 비용 | 13,000,000원 |
-| 소액임차인 보증금 기준 | 140,000,000원 이하 |
-| 최우선변제금 기준 | 48,000,000원 이하 |
-| 안전 | 회수율 90% 이상 |
-| 주의 | 회수율 60% 이상 90% 미만 |
-| 위험 | 회수율 60% 미만 |
-
----
+- 주소, 주택 유형, 면적, 보증금, 근저당, 선순위 임차인 정보를 입력해 보증금 회수 위험 분석
+- AI 모델 예측 가격을 기반으로 예상 경매가 산정
+- 소액임차인 및 최우선변제 기준을 반영한 회수 가능 금액 계산
+- 용인시 구/동 단위 전월세 거래 통계, 연도별 추이, 면적대별 보증금 분석
 
 ## 기술 스택
 
-| 구분 | 기술 |
-|------|------|
-| Language | Java 17 |
-| Framework | Spring Boot |
-| Build | Gradle |
-| Database | MySQL |
-| Data Access | JdbcTemplate, Repository |
-| External AI API | `AI_API_URL` 기반 REST 호출 |
-| Data Resource | CSV, JSON |
-
----
-
-## API 명세
-
-### 보증금 안전도 분석
-
-```http
-POST /api/analyze
-```
-
-요청 예시:
-
-```json
-{
-  "address": "경기도 용인시 수지구 죽전동",
-  "buildingType": "다가구",
-  "area": "120.5",
-  "landArea": "80.3",
-  "buildingAge": "2018",
-  "deposit": "50000000",
-  "mortgage": "300000000",
-  "priorTenants": "100000000"
-}
-```
-
-응답 필드:
-
-| 필드 | 설명 |
-|------|------|
-| `riskLevel` | 안전, 주의, 위험 |
-| `recoveryRate` | 보증금 회수율 |
-| `depositAmount` | 입력 보증금 |
-| `recoverableAmount` | 예상 회수 가능 금액 |
-| `expectedAuctionPrice` | 예상 경매가 |
-| `mortgageAmount` | 근저당 설정액 |
-| `priorTenantsAmount` | 선순위 임차보증금 |
-| `auctionCost` | 경매 비용 |
-| `smallTenantApplied` | 소액임차인 기준 적용 여부 |
-| `priorityRepaymentApplied` | 최우선변제 기준 적용 여부 |
-| `recoveryRuleMessage` | 적용된 회수 기준 설명 |
-
-### 거래 데이터 API
-
-```http
-GET /api/trades
-```
-
-전체 거래 데이터를 조회합니다.
-
-```http
-GET /api/trades/summary
-```
-
-구별 거래 건수, 평균 보증금, 최소·최대 보증금을 조회합니다.
-
-```http
-GET /api/trades/trend
-```
-
-연도별 평균 보증금 추세를 조회합니다.
-
-```http
-GET /api/trades/regional-analysis
-```
-
-읍면동 단위 거래 통계, 면적대별 통계, 월별 추세를 조회합니다.
-
----
-
-## 외부 AI 예측 API 연동
-
-백엔드는 `AI_API_URL` 환경 변수에 설정된 서버로 시세 예측 요청을 보냅니다.
-
-기본값:
-
-```text
-http://localhost:8000
-```
-
-호출 경로:
-
-```http
-POST /predict
-```
-
-AI API 응답은 다음 필드를 사용합니다.
-
-| 필드 | 설명 |
-|------|------|
-| `predicted_price_manwon` | 예측 가격, 단위 만원 |
-| `predicted_price_text` | 예측 가격 문자열 |
-
----
-
-## 환경 변수
-
-| 변수 | 기본값 | 설명 |
-|------|--------|------|
-| `AI_API_URL` | `http://localhost:8000` | 외부 AI 시세 예측 API 주소 |
-| `CORS_ALLOWED_ORIGINS` | `http://localhost:5173` | 허용할 프론트엔드 Origin |
-| `DB_URL` | `jdbc:mysql://localhost:3306/yongin_trade_db?serverTimezone=Asia/Seoul&characterEncoding=UTF-8` | MySQL 연결 URL |
-| `DB_USERNAME` | `root` | DB 사용자명 |
-| `DB_PASSWORD` | `your_mysql_password` | DB 비밀번호 |
-
----
+| 영역 | 기술 |
+| --- | --- |
+| Frontend | React 18, Vite, React Router, Recharts, Tailwind CSS |
+| Backend | Java 17, Spring Boot, JDBC, MySQL |
+| AI API | FastAPI, Uvicorn, scikit-learn, XGBoost, joblib |
+| Model | XGBoost ensemble model |
+| Deployment | Render, Railway |
 
 ## 프로젝트 구조
 
-현재 저장소 기준 구조입니다.
-
 ```text
-opensource2026-backend
-├── README.md
-└── demo
-    ├── build.gradle
-    ├── Dockerfile
-    ├── gradlew
-    ├── gradlew.bat
-    ├── settings.gradle
-    ├── gradle
-    │   └── wrapper
-    └── src
-        ├── main
-        │   ├── java/com/example/demo
-        │   │   ├── DemoApplication.java
-        │   │   ├── CorsConfig.java
-        │   │   ├── controller
-        │   │   │   ├── AnalysisController.java
-        │   │   │   └── TradeDataController.java
-        │   │   ├── dto
-        │   │   ├── entity
-        │   │   ├── repository
-        │   │   └── service
-        │   │       ├── CsvImportService.java
-        │   │       ├── PricePredictionClient.java
-        │   │       └── TradeDataService.java
-        │   └── resources
-        │       ├── application.properties
-        │       ├── transactions.csv
-        │       └── data
-        │           └── yongin_trade_sample.json
-        └── test
-            ├── java/com/example/demo
-            └── resources
+.
+├── frontend_react/        # React/Vite 프론트엔드
+├── demo/                  # Spring Boot 백엔드 API
+├── ai_api/                # FastAPI AI 예측 API
+│   └── models/            # 배포용 joblib 모델
+├── ai_training/           # 모델 학습 스크립트
+├── app.py                 # Render 루트 배포용 FastAPI 엔트리
+├── requirements.txt       # 루트 FastAPI 배포 의존성
+└── README.md
 ```
 
----
+## 서비스 흐름
 
-## 실행 방법
+```text
+React Frontend
+  └─ /api 요청
+      └─ Spring Boot Backend
+          ├─ MySQL 거래 데이터 조회
+          └─ FastAPI AI API /predict 호출
+              └─ joblib 모델로 주택 가격 예측
+```
 
-### 1. 백엔드 실행
+## 로컬 실행
 
-Windows:
+### 1. AI API 실행
 
-```powershell
+```bash
+cd ai_api
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
+```
+
+확인:
+
+```bash
+curl http://localhost:8000/health
+```
+
+### 2. Spring Boot 백엔드 실행
+
+MySQL을 먼저 실행하고 `demo/src/main/resources/application.properties` 또는 환경변수로 DB 접속 정보를 설정합니다.
+
+```bash
 cd demo
 .\gradlew.bat bootRun
 ```
 
-macOS/Linux:
+기본 포트는 `8080`입니다.
+
+필요 환경변수:
+
+| 변수 | 기본값 | 설명 |
+| --- | --- | --- |
+| `AI_API_URL` | `http://localhost:8000` | FastAPI 예측 API 주소 |
+| `CORS_ALLOWED_ORIGINS` | `http://localhost:5173` | 프론트엔드 허용 Origin |
+| `DB_URL` | `jdbc:mysql://localhost:3306/yongin_trade_db?serverTimezone=Asia/Seoul&characterEncoding=UTF-8` | MySQL JDBC URL |
+| `DB_USERNAME` | `root` | DB 사용자 |
+| `DB_PASSWORD` | `your_mysql_password` | DB 비밀번호 |
+
+### 3. 프론트엔드 실행
 
 ```bash
-cd demo
-./gradlew bootRun
+cd frontend_react
+npm install
+npm run dev
 ```
 
-서버 기본 주소:
+기본 주소는 `http://localhost:5173`입니다.
+
+프론트엔드 환경변수:
+
+| 변수 | 기본값 | 설명 |
+| --- | --- | --- |
+| `VITE_API_BASE_URL` | `http://localhost:8080/api` | Spring Boot API base URL |
+
+## API
+
+### Spring Boot Backend
+
+| Method | Path | 설명 |
+| --- | --- | --- |
+| `POST` | `/api/analyze` | 보증금 회수 위험 분석 |
+| `GET` | `/api/trades` | 거래 데이터 목록 조회 |
+| `GET` | `/api/trades/summary` | 구 단위 거래 요약 |
+| `GET` | `/api/trades/trend` | 연도별 평균 보증금 추이 |
+| `GET` | `/api/trades/regional-analysis` | 동 단위 지역 분석 |
+
+### FastAPI AI API
+
+| Method | Path | 설명 |
+| --- | --- | --- |
+| `GET` | `/health` | 모델 로드 상태 확인 |
+| `POST` | `/predict` | 주택 가격 예측 |
+| `GET` | `/docs` | Swagger UI |
+
+## 배포
+
+### Render - Frontend
+
+| 항목 | 값 |
+| --- | --- |
+| Root Directory | `frontend_react` |
+| Build Command | `npm install && npm run build` |
+| Publish Directory | `dist` |
+
+환경변수:
 
 ```text
-http://localhost:8080
+VITE_API_BASE_URL=https://<railway-backend-domain>/api
 ```
 
-### 2. AI 예측 서버 연동
+SPA 라우팅을 사용하는 경우 Render Rewrite 설정에서 모든 경로를 `/index.html`로 연결합니다.
 
-AI 예측 서버가 별도로 실행 중이어야 실제 예측 가격을 사용할 수 있습니다.
+### Render - AI API
+
+`ai_api` 디렉터리 기준 배포:
+
+| 항목 | 값 |
+| --- | --- |
+| Root Directory | `ai_api` |
+| Runtime | Python 3 |
+| Build Command | `pip install -r requirements.txt` |
+| Start Command | `uvicorn main:app --host 0.0.0.0 --port $PORT` |
+
+루트 디렉터리 기준 배포를 사용할 경우:
+
+| 항목 | 값 |
+| --- | --- |
+| Build Command | `pip install -r requirements.txt` |
+| Start Command | `uvicorn app:app --host 0.0.0.0 --port $PORT` |
+
+모델 파일은 아래 경로에 포함되어 있어야 합니다.
 
 ```text
-AI_API_URL=http://localhost:8000
+ai_api/models/xgb_price_unit_ensemble_model.joblib
 ```
 
-AI 예측 API 호출에 실패하면 백엔드는 기본 예상 경매가인 `650,000,000원`을 사용해 분석을 계속합니다.
+### Railway - Spring Boot Backend
 
----
+| 항목 | 값 |
+| --- | --- |
+| Root Directory | `demo` |
+| Build Command | `./gradlew bootJar` |
+| Start Command | `java -jar build/libs/demo-0.0.1-SNAPSHOT.jar` |
 
-## 데이터
+Railway 환경변수:
 
-현재 백엔드에는 다음 리소스 파일이 포함되어 있습니다.
+```text
+AI_API_URL=https://<render-ai-api-domain>
+CORS_ALLOWED_ORIGINS=https://<render-frontend-domain>
+DB_URL=jdbc:mysql://<host>:<port>/<database>?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+DB_USERNAME=<username>
+DB_PASSWORD=<password>
+```
 
-| 파일 | 설명 |
-|------|------|
-| `demo/src/main/resources/transactions.csv` | 애플리케이션 시작 시 적재하는 거래 데이터 |
-| `demo/src/main/resources/data/yongin_trade_sample.json` | 거래 데이터 샘플 JSON |
+Railway에서 MySQL 플러그인 또는 외부 MySQL을 사용하는 경우 해당 연결 정보를 `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`에 맞춰 설정합니다.
 
-거래 통계 API는 MySQL의 `cheoin_data`, `giheung_data`, `suji_data` 테이블을 조회하도록 구현되어 있습니다.
+## 모델 학습 및 교체
 
----
+학습 코드는 `ai_training/train_model.py`에 유지되어 있으며, 배포 시에는 모델을 재학습하지 않고 저장된 joblib 파일만 로드합니다.
 
-## 팀원
+새 모델을 배포하려면 학습 결과물 중 `.joblib` 파일을 아래 위치로 교체한 뒤 AI API를 재배포합니다.
 
-이정우, 안시영, 김준환
+```text
+ai_api/models/xgb_price_unit_ensemble_model.joblib
+```
 
----
+## 주의사항
 
-## 참고
-
-- [국토교통부 실거래가 공개시스템](https://rt.molit.go.kr)
-- [국가법령정보센터](https://www.law.go.kr)
+- 현재 배포 구조는 프론트엔드, Spring Boot 백엔드, AI API가 서로 다른 서비스로 동작하는 것을 전제로 합니다.
+- 프론트엔드의 `VITE_API_BASE_URL`, 백엔드의 `AI_API_URL`, `CORS_ALLOWED_ORIGINS` 값이 실제 배포 도메인과 일치해야 합니다.
+- MySQL 테이블과 컬럼명은 백엔드 조회 SQL과 일치해야 합니다.
